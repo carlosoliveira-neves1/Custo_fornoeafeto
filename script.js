@@ -35,6 +35,16 @@ document.addEventListener("DOMContentLoaded", () => {
     currency: "BRL"
   });
 
+  const parseCurrency = (value) => {
+    if (value == null || value === "") return 0;
+    const cleaned = value
+      .toString()
+      .replace(/[^0-9,.-]+/g, "")
+      .replace(',', '.');
+    const numeric = parseFloat(cleaned);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
   const STORAGE_KEY = "forno-afeto-receitas";
   const MAX_RECIPES = 10;
 
@@ -49,6 +59,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const exportPdfBtn = document.getElementById("export-pdf");
   const recipeStatus = document.getElementById("recipe-status");
   const historyList = document.getElementById("recipe-history");
+  const energyRateInput = document.getElementById("energy-rate");
+  const gasRateInput = document.getElementById("gas-rate");
+  const laborRateInput = document.getElementById("labor-rate");
+  const addEnergyRowBtn = document.getElementById("add-energy-row");
+  const addGasRowBtn = document.getElementById("add-gas-row");
+  const addLaborRowBtn = document.getElementById("add-labor-row");
+  const energyBody = document.getElementById("energy-body");
+  const gasBody = document.getElementById("gas-body");
+  const laborBody = document.getElementById("labor-body");
+  const energyTotalCell = document.getElementById("energy-total");
+  const gasTotalCell = document.getElementById("gas-total");
+  const laborTotalCell = document.getElementById("labor-total");
+  const operationsTotalCell = document.getElementById("operations-total");
+  const energyRowTemplate = document.getElementById("energy-row-template");
+  const gasRowTemplate = document.getElementById("gas-row-template");
+  const laborRowTemplate = document.getElementById("labor-row-template");
 
   let recipeCache = [];
   let currentRecipeId = null;
@@ -105,10 +131,19 @@ document.addEventListener("DOMContentLoaded", () => {
       name.textContent = recipe.name;
 
       const total = document.createElement("span");
-      total.textContent = recipe.total || currencyFormatter.format(0);
+      const ingredientTotal = parseCurrency(recipe.total);
+      const operationsTotal = recipe.operationsTotals?.raw?.total ?? 0;
+      const finalTotal = ingredientTotal + operationsTotal;
+      total.textContent = currencyFormatter.format(finalTotal || 0);
 
       info.appendChild(name);
       info.appendChild(total);
+
+      if (operationsTotal > 0 && recipe.operationsTotals?.total) {
+        const operationsNote = document.createElement("small");
+        operationsNote.textContent = `Operações: ${recipe.operationsTotals.total}`;
+        info.appendChild(operationsNote);
+      }
 
       const actions = document.createElement("div");
       actions.className = "history-actions";
@@ -193,10 +228,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     costCell.textContent = currencyFormatter.format(cost || 0);
-    updateTotal();
+    updateIngredientTotal();
   }
 
-  function updateTotal() {
+  function updateIngredientTotal() {
     const costs = [...ingredientBody.querySelectorAll(".cost-cell")].map((cell) => {
       const numeric = cell.textContent.replace(/[^0-9,.-]+/g, "").replace(",", ".");
       return parseFloat(numeric) || 0;
@@ -204,6 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const total = costs.reduce((acc, value) => acc + value, 0);
     totalCostCell.textContent = currencyFormatter.format(total);
+    return total;
   }
 
   function handleIngredientChange(row, select) {
@@ -256,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     removeBtn.addEventListener("click", () => {
       row.remove();
-      updateTotal();
+      updateIngredientTotal();
     });
   }
 
@@ -334,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "receita-forno-afeto";
 
-  const rowsToCSV = (rows, recipeName, total) => {
+  const rowsToCSV = (rows, recipeName, total, operationsTotals) => {
     const header = [
       "Ingrediente",
       "Categoria",
@@ -366,7 +402,22 @@ document.addEventListener("DOMContentLoaded", () => {
         .join(";");
     });
 
-    return ["sep=;", `"Receita";"${recipeName.replace(/"/g, '""')}"`, header.map((label) => `"${label}"`).join(";"), ...lines, `"Total";"";"";"";"";"";"";"${total}"`].join("\n");
+    const operationsLines = [
+      "",
+      `"Energia";"";"";"";"";"";"";"${operationsTotals.energy}"`,
+      `"Gás";"";"";"";"";"";"";"${operationsTotals.gas}"`,
+      `"Mão de obra";"";"";"";"";"";"";"${operationsTotals.labor}"`,
+      `"Total custos operacionais";"";"";"";"";"";"";"${operationsTotals.total}"`
+    ];
+
+    return [
+      "sep=;",
+      `"Receita";"${recipeName.replace(/"/g, '""')}"`,
+      header.map((label) => `"${label}"`).join(";"),
+      ...lines,
+      `"Total ingredientes";"";"";"";"";"";"";"${total}"`,
+      ...operationsLines
+    ].join("\n");
   };
 
   const escapeHtml = (value) =>
@@ -378,7 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
-  const rowsToPdfHtml = (rows, recipeName, total) => {
+  const rowsToPdfHtml = (rows, recipeName, total, operationsTotals) => {
     const currentDate = new Date().toLocaleDateString("pt-BR");
     const tableRows = rows
       .map((row) => {
@@ -449,6 +500,20 @@ document.addEventListener("DOMContentLoaded", () => {
               font-weight: 600;
               background: rgba(255, 195, 153, 0.35);
             }
+            .summary-table {
+              margin-top: 24px;
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .summary-table td {
+              padding: 6px 10px;
+              border: 1px solid rgba(0,0,0,0.08);
+              font-size: 0.9rem;
+            }
+            .summary-table td:first-child {
+              font-weight: 600;
+              background: rgba(255, 195, 153, 0.25);
+            }
             .footer-note {
               margin-top: 24px;
               font-size: 0.85rem;
@@ -494,6 +559,28 @@ document.addEventListener("DOMContentLoaded", () => {
               </tfoot>
             </table>
           </section>
+          <table class="summary-table">
+            <tr>
+              <td>Total ingredientes</td>
+              <td>${escapeHtml(total)}</td>
+            </tr>
+            <tr>
+              <td>Energia</td>
+              <td>${escapeHtml(operationsTotals?.energy ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Gás</td>
+              <td>${escapeHtml(operationsTotals?.gas ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Mão de obra</td>
+              <td>${escapeHtml(operationsTotals?.labor ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Total custos operacionais</td>
+              <td>${escapeHtml(operationsTotals?.total ?? currencyFormatter.format(0))}</td>
+            </tr>
+          </table>
           <p class="footer-note">Documento gerado automaticamente pela calculadora de custos Forno &amp; Afeto.</p>
           <script>
             window.addEventListener('load', () => {
@@ -504,12 +591,89 @@ document.addEventListener("DOMContentLoaded", () => {
       </html>`;
   };
 
+  const calculateRowCost = (value) => {
+    const numeric = typeof value === "string" ? parseFloat(value.replace(",", ".")) : Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  const updateEnergyTotals = () => {
+    const rate = calculateRowCost(energyRateInput.value);
+    let subtotal = 0;
+
+    [...energyBody.querySelectorAll("tr")].forEach((row) => {
+      const power = calculateRowCost(row.querySelector(".energy-power").value);
+      const time = calculateRowCost(row.querySelector(".energy-time").value);
+      const consumptionKwh = ((power || 0) * (time || 0)) / 60;
+      subtotal += consumptionKwh * rate;
+
+      row.querySelector(".energy-consumption").textContent = consumptionKwh.toFixed(2).replace(".", ",");
+      row.querySelector(".energy-cost").textContent = currencyFormatter.format(consumptionKwh * rate || 0);
+    });
+
+    energyTotalCell.textContent = currencyFormatter.format(subtotal || 0);
+    return subtotal;
+  };
+
+  const updateGasTotals = () => {
+    const rate = calculateRowCost(gasRateInput.value);
+    let subtotal = 0;
+
+    [...gasBody.querySelectorAll("tr")].forEach((row) => {
+      const consumptionRate = calculateRowCost(row.querySelector(".gas-consumption-rate").value);
+      const time = calculateRowCost(row.querySelector(".gas-time").value);
+      const totalVolume = ((consumptionRate || 0) * (time || 0)) / 60;
+      subtotal += totalVolume * rate;
+
+      row.querySelector(".gas-consumption").textContent = totalVolume.toFixed(3).replace(".", ",");
+      row.querySelector(".gas-cost").textContent = currencyFormatter.format(totalVolume * rate || 0);
+    });
+
+    gasTotalCell.textContent = currencyFormatter.format(subtotal || 0);
+    return subtotal;
+  };
+
+  const updateLaborTotals = () => {
+    const defaultRate = calculateRowCost(laborRateInput.value);
+    let subtotal = 0;
+
+    [...laborBody.querySelectorAll("tr")].forEach((row) => {
+      const time = calculateRowCost(row.querySelector(".labor-time").value);
+      const rateInput = row.querySelector(".labor-rate");
+      const rateValue = rateInput.value ? calculateRowCost(rateInput.value) : defaultRate;
+      if (!rateInput.value && defaultRate > 0) {
+        rateInput.placeholder = defaultRate.toFixed(2);
+      }
+      const cost = ((time || 0) / 60) * (rateValue || 0);
+      subtotal += cost;
+      row.querySelector(".labor-cost").textContent = currencyFormatter.format(cost || 0);
+    });
+
+    laborTotalCell.textContent = currencyFormatter.format(subtotal || 0);
+    return subtotal;
+  };
+
+  const updateOperationsTotal = () => {
+    const energy = updateEnergyTotals();
+    const gas = updateGasTotals();
+    const labor = updateLaborTotals();
+    const totalOperations = energy + gas + labor;
+    operationsTotalCell.textContent = currencyFormatter.format(totalOperations || 0);
+    return totalOperations;
+  };
+
   const resetForm = () => {
     ingredientBody.innerHTML = "";
+    energyBody.innerHTML = "";
+    gasBody.innerHTML = "";
+    laborBody.innerHTML = "";
     addRow();
+    addEnergyRow();
+    addGasRow();
+    addLaborRow();
     recipeNameInput.value = "";
     currentRecipeId = null;
-    updateTotal();
+    updateIngredientTotal();
+    updateOperationsTotal();
   };
 
   const saveCurrentRecipe = () => {
@@ -522,6 +686,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rowsData = collectRowsData();
     const total = totalCostCell.textContent;
+    const operationsSnapshot = getOperationsSnapshot();
     const timestamp = new Date().toISOString();
 
     const recipePayload = {
@@ -529,6 +694,13 @@ document.addEventListener("DOMContentLoaded", () => {
       name,
       rows: rowsData,
       total,
+      operationsTotals: operationsSnapshot,
+      energyRate: energyRateInput.value,
+      gasRate: gasRateInput.value,
+      laborRate: laborRateInput.value,
+      energyRows: collectEnergyRows(),
+      gasRows: collectGasRows(),
+      laborRows: collectLaborRows(),
       updatedAt: timestamp
     };
 
@@ -558,10 +730,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     ingredientBody.innerHTML = "";
+    energyBody.innerHTML = "";
+    gasBody.innerHTML = "";
+    laborBody.innerHTML = "";
     recipe.rows.forEach((rowData) => addRow(rowData));
+    (recipe.energyRows || []).forEach((rowData) => addEnergyRow(rowData));
+    (recipe.gasRows || []).forEach((rowData) => addGasRow(rowData));
+    (recipe.laborRows || []).forEach((rowData) => addLaborRow(rowData));
     recipeNameInput.value = recipe.name;
+    energyRateInput.value = recipe.energyRate ?? energyRateInput.value;
+    gasRateInput.value = recipe.gasRate ?? gasRateInput.value;
+    laborRateInput.value = recipe.laborRate ?? laborRateInput.value;
     currentRecipeId = recipe.id;
-    updateTotal();
+    updateIngredientTotal();
+    updateOperationsTotal();
     showStatus(`Receita "${recipe.name}" carregada.`, "success");
   };
 
@@ -584,6 +766,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const rowsData = collectRowsData();
+    const operationsTotals = getOperationsSnapshot();
     const hasContent = rowsData.some(
       (row) => row.ingredientValue || row.customName || row.amountUsed || row.amountPurchased || row.pricePaid
     );
@@ -593,7 +776,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const csvContent = rowsToCSV(rowsData, name, totalCostCell.textContent);
+    const csvContent = rowsToCSV(rowsData, name, totalCostCell.textContent, operationsTotals);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -607,6 +790,20 @@ document.addEventListener("DOMContentLoaded", () => {
     showStatus("Arquivo CSV gerado com sucesso!", "success");
   };
 
+  const getOperationsSnapshot = () => {
+    const energy = updateEnergyTotals();
+    const gas = updateGasTotals();
+    const labor = updateLaborTotals();
+    const total = energy + gas + labor;
+    return {
+      energy: currencyFormatter.format(energy || 0),
+      gas: currencyFormatter.format(gas || 0),
+      labor: currencyFormatter.format(labor || 0),
+      total: currencyFormatter.format(total || 0),
+      raw: { energy, gas, labor, total }
+    };
+  };
+
   const exportCurrentRecipePdf = () => {
     const name = recipeNameInput.value.trim();
     if (!name) {
@@ -616,6 +813,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const rowsData = collectRowsData();
+    const operationsTotals = getOperationsSnapshot();
     const hasContent = rowsData.some(
       (row) => row.ingredientValue || row.customName || row.amountUsed || row.amountPurchased || row.pricePaid
     );
@@ -632,7 +830,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     pdfWindow.document.open();
-    pdfWindow.document.write(rowsToPdfHtml(rowsData, name, totalCostCell.textContent));
+    pdfWindow.document.write(rowsToPdfHtml(rowsData, name, totalCostCell.textContent, operationsTotals));
     pdfWindow.document.close();
 
     showStatus("Pré-visualização em PDF aberta em nova janela.", "success");
@@ -640,6 +838,84 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.loadRecipe = loadRecipe;
   window.deleteRecipe = deleteRecipe;
+
+  function addEnergyRow(rowData = null) {
+    const row = energyRowTemplate.content.firstElementChild.cloneNode(true);
+    const inputs = row.querySelectorAll("input");
+
+    inputs.forEach((input) => {
+      input.addEventListener("input", () => {
+        updateOperationsTotal();
+      });
+    });
+
+    row.querySelector(".remove-row").addEventListener("click", () => {
+      row.remove();
+      updateOperationsTotal();
+    });
+
+    energyBody.appendChild(row);
+
+    if (rowData) {
+      row.querySelector(".energy-name").value = rowData.name || "";
+      row.querySelector(".energy-power").value = rowData.power || "";
+      row.querySelector(".energy-time").value = rowData.time || "";
+    }
+
+    updateOperationsTotal();
+  }
+
+  function addGasRow(rowData = null) {
+    const row = gasRowTemplate.content.firstElementChild.cloneNode(true);
+    const inputs = row.querySelectorAll("input");
+
+    inputs.forEach((input) => {
+      input.addEventListener("input", () => {
+        updateOperationsTotal();
+      });
+    });
+
+    row.querySelector(".remove-row").addEventListener("click", () => {
+      row.remove();
+      updateOperationsTotal();
+    });
+
+    gasBody.appendChild(row);
+
+    if (rowData) {
+      row.querySelector(".gas-name").value = rowData.name || "";
+      row.querySelector(".gas-consumption-rate").value = rowData.consumptionRate || "";
+      row.querySelector(".gas-time").value = rowData.time || "";
+    }
+
+    updateOperationsTotal();
+  }
+
+  function addLaborRow(rowData = null) {
+    const row = laborRowTemplate.content.firstElementChild.cloneNode(true);
+    const inputs = row.querySelectorAll("input");
+
+    inputs.forEach((input) => {
+      input.addEventListener("input", () => {
+        updateOperationsTotal();
+      });
+    });
+
+    row.querySelector(".remove-row").addEventListener("click", () => {
+      row.remove();
+      updateOperationsTotal();
+    });
+
+    laborBody.appendChild(row);
+
+    if (rowData) {
+      row.querySelector(".labor-name").value = rowData.name || "";
+      row.querySelector(".labor-time").value = rowData.time || "";
+      row.querySelector(".labor-rate").value = rowData.rate || "";
+    }
+
+    updateOperationsTotal();
+  }
 
   addRowBtn.addEventListener("click", addRow);
   saveRecipeBtn.addEventListener("click", saveCurrentRecipe);
@@ -649,6 +925,33 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   exportRecipeBtn.addEventListener("click", exportCurrentRecipe);
   exportPdfBtn.addEventListener("click", exportCurrentRecipePdf);
+  addEnergyRowBtn.addEventListener("click", () => addEnergyRow());
+  addGasRowBtn.addEventListener("click", () => addGasRow());
+  addLaborRowBtn.addEventListener("click", () => addLaborRow());
+  energyRateInput.addEventListener("input", updateOperationsTotal);
+  gasRateInput.addEventListener("input", updateOperationsTotal);
+  laborRateInput.addEventListener("input", updateOperationsTotal);
+
+  const collectEnergyRows = () =>
+    [...energyBody.querySelectorAll("tr")].map((row) => ({
+      name: row.querySelector(".energy-name").value,
+      power: row.querySelector(".energy-power").value,
+      time: row.querySelector(".energy-time").value
+    }));
+
+  const collectGasRows = () =>
+    [...gasBody.querySelectorAll("tr")].map((row) => ({
+      name: row.querySelector(".gas-name").value,
+      consumptionRate: row.querySelector(".gas-consumption-rate").value,
+      time: row.querySelector(".gas-time").value
+    }));
+
+  const collectLaborRows = () =>
+    [...laborBody.querySelectorAll("tr")].map((row) => ({
+      name: row.querySelector(".labor-name").value,
+      time: row.querySelector(".labor-time").value,
+      rate: row.querySelector(".labor-rate").value
+    }));
 
   recipeCache = loadRecipesFromStorage();
   populateHistory();

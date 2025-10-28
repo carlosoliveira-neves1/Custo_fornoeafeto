@@ -105,6 +105,64 @@ main {
   padding: 1.5rem 2rem;
 }
 
+.operations-card {
+  display: grid;
+  gap: 2rem;
+}
+
+.rate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.rate-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.rate-field small {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.operations-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.operations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+table.compact th,
+table.compact td {
+  font-size: 0.9rem;
+  padding: 0.6rem 0.5rem;
+}
+
+.operations-grand-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.operations-grand-total span {
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+.energy-consumption,
+.gas-consumption {
+  font-variant-numeric: tabular-nums;
+}
+
 .recipe-card {
   display: grid;
   gap: 1rem;

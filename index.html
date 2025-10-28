@@ -72,6 +72,121 @@
       </div>
     </section>
 
+    <section class="card operations-card">
+      <header class="card-header">
+        <h2>Custos operacionais</h2>
+      </header>
+
+      <div class="rate-grid">
+        <div class="rate-field">
+          <label for="energy-rate">Tarifa de energia (R$/kWh)</label>
+          <input type="number" id="energy-rate" min="0" step="0.01" value="1.10" />
+          <small>Base: R$291,00 ÷ 264 kWh ≈ R$1,10</small>
+        </div>
+        <div class="rate-field">
+          <label for="gas-rate">Tarifa de gás (R$/m³)</label>
+          <input type="number" id="gas-rate" min="0" step="0.01" value="9.10" />
+          <small>Base: R$93,39 ÷ 10,249 m³ ≈ R$9,10</small>
+        </div>
+        <div class="rate-field">
+          <label for="labor-rate">Valor hora de mão de obra (R$/h)</label>
+          <input type="number" id="labor-rate" min="0" step="0.01" placeholder="Ex.: 20" />
+          <small>Defina o custo por hora do trabalho.</small>
+        </div>
+      </div>
+
+      <section class="operations-section">
+        <div class="operations-header">
+          <h3>Energia elétrica</h3>
+          <button type="button" class="ghost" id="add-energy-row">Adicionar uso</button>
+        </div>
+        <div class="table-scroll">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Equipamento</th>
+                <th>Potência (kW)</th>
+                <th>Tempo (min)</th>
+                <th>Consumo (kWh)</th>
+                <th>Custo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="energy-body"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4">Total energia</td>
+                <td id="energy-total">R$ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="operations-section">
+        <div class="operations-header">
+          <h3>Gás</h3>
+          <button type="button" class="ghost" id="add-gas-row">Adicionar uso</button>
+        </div>
+        <div class="table-scroll">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Equipamento</th>
+                <th>Consumo (m³/h)</th>
+                <th>Tempo (min)</th>
+                <th>Consumo (m³)</th>
+                <th>Custo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="gas-body"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4">Total gás</td>
+                <td id="gas-total">R$ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="operations-section">
+        <div class="operations-header">
+          <h3>Mão de obra</h3>
+          <button type="button" class="ghost" id="add-labor-row">Adicionar atividade</button>
+        </div>
+        <div class="table-scroll">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Atividade</th>
+                <th>Tempo (min)</th>
+                <th>Valor hora (R$)</th>
+                <th>Custo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="labor-body"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3">Total mão de obra</td>
+                <td id="labor-total">R$ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <div class="operations-grand-total">
+        <strong>Total de custos operacionais</strong>
+        <span id="operations-total">R$ 0,00</span>
+      </div>
+    </section>
+
     <div class="info-grid">
       <section class="card helper">
         <h2>Como usar</h2>
@@ -122,6 +237,62 @@
         <input type="number" min="0" step="0.01" class="price-paid" placeholder="0,00" />
       </td>
       <td class="cost-cell">R$ 0,00</td>
+      <td>
+        <button type="button" class="ghost remove-row">✕</button>
+      </td>
+    </tr>
+  </template>
+
+  <template id="energy-row-template">
+    <tr>
+      <td>
+        <input type="text" class="energy-name" placeholder="Ex.: Batedeira" />
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" class="energy-power" placeholder="0" />
+      </td>
+      <td>
+        <input type="number" min="0" step="1" class="energy-time" placeholder="0" />
+      </td>
+      <td class="energy-consumption">0,00</td>
+      <td class="energy-cost">R$ 0,00</td>
+      <td>
+        <button type="button" class="ghost remove-row">✕</button>
+      </td>
+    </tr>
+  </template>
+
+  <template id="gas-row-template">
+    <tr>
+      <td>
+        <input type="text" class="gas-name" placeholder="Ex.: Forno a gás" />
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" class="gas-consumption-rate" placeholder="0" />
+      </td>
+      <td>
+        <input type="number" min="0" step="1" class="gas-time" placeholder="0" />
+      </td>
+      <td class="gas-consumption">0,00</td>
+      <td class="gas-cost">R$ 0,00</td>
+      <td>
+        <button type="button" class="ghost remove-row">✕</button>
+      </td>
+    </tr>
+  </template>
+
+  <template id="labor-row-template">
+    <tr>
+      <td>
+        <input type="text" class="labor-name" placeholder="Ex.: Preparação" />
+      </td>
+      <td>
+        <input type="number" min="0" step="1" class="labor-time" placeholder="0" />
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" class="labor-rate" placeholder="0" />
+      </td>
+      <td class="labor-cost">R$ 0,00</td>
       <td>
         <button type="button" class="ghost remove-row">✕</button>
       </td>
