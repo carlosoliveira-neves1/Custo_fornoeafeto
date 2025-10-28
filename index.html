@@ -92,20 +92,33 @@
           <label for="labor-rate">Valor hora de mão de obra (R$/h)</label>
           <input type="number" id="labor-rate" min="0" step="0.01" placeholder="Ex.: 20" />
           <small>Defina o custo por hora do trabalho.</small>
+          <div class="rate-suggestions" aria-label="Sugestões de valores por hora">
+            <button type="button" class="ghost small labor-suggestion" data-rate="20">R$ 20</button>
+            <button type="button" class="ghost small labor-suggestion" data-rate="25">R$ 25</button>
+            <button type="button" class="ghost small labor-suggestion" data-rate="30">R$ 30</button>
+            <button type="button" class="ghost small labor-suggestion" data-rate="35">R$ 35</button>
+          </div>
         </div>
       </div>
 
       <section class="operations-section">
         <div class="operations-header">
           <h3>Energia elétrica</h3>
-          <button type="button" class="ghost" id="add-energy-row">Adicionar uso</button>
+          <div class="operations-actions">
+            <div class="operations-presets" role="group" aria-label="Equipamentos padrão">
+              <button type="button" class="ghost small energy-preset" data-name="Batedeira" data-power="350" data-frequency="60" data-time="15">Batedeira</button>
+              <button type="button" class="ghost small energy-preset" data-name="Liquidificador" data-power="600" data-frequency="60" data-time="5">Liquidificador</button>
+            </div>
+            <button type="button" class="ghost" id="add-energy-row">Adicionar uso</button>
+          </div>
         </div>
         <div class="table-scroll">
           <table class="compact">
             <thead>
               <tr>
                 <th>Equipamento</th>
-                <th>Potência (kW)</th>
+                <th>Potência (W)</th>
+                <th>Frequência (Hz)</th>
                 <th>Tempo (min)</th>
                 <th>Consumo (kWh)</th>
                 <th>Custo</th>
@@ -115,7 +128,7 @@
             <tbody id="energy-body"></tbody>
             <tfoot>
               <tr>
-                <td colspan="4">Total energia</td>
+                <td colspan="5">Total energia</td>
                 <td id="energy-total">R$ 0,00</td>
                 <td></td>
               </tr>
@@ -127,7 +140,10 @@
       <section class="operations-section">
         <div class="operations-header">
           <h3>Gás</h3>
-          <button type="button" class="ghost" id="add-gas-row">Adicionar uso</button>
+          <div class="operations-actions">
+            <button type="button" class="ghost" id="use-gas-average" title="Aplicar consumo médio da conta">Usar consumo médio</button>
+            <button type="button" class="ghost" id="add-gas-row">Adicionar uso</button>
+          </div>
         </div>
         <div class="table-scroll">
           <table class="compact">
@@ -320,7 +336,10 @@
         <input type="text" class="energy-name" placeholder="Ex.: Batedeira" />
       </td>
       <td>
-        <input type="number" min="0" step="0.01" class="energy-power" placeholder="0" />
+        <input type="number" min="0" step="1" class="energy-power" placeholder="0" />
+      </td>
+      <td>
+        <input type="number" min="0" step="1" class="energy-frequency" placeholder="60" />
       </td>
       <td>
         <input type="number" min="0" step="1" class="energy-time" placeholder="0" />
@@ -339,7 +358,7 @@
         <input type="text" class="gas-name" placeholder="Ex.: Forno a gás" />
       </td>
       <td>
-        <input type="number" min="0" step="0.01" class="gas-consumption-rate" placeholder="0" />
+        <input type="number" min="0" step="0.0001" class="gas-consumption-rate" placeholder="0,0147" />
       </td>
       <td>
         <input type="number" min="0" step="1" class="gas-time" placeholder="0" />

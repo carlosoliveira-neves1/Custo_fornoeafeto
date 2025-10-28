@@ -75,6 +75,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const energyRowTemplate = document.getElementById("energy-row-template");
   const gasRowTemplate = document.getElementById("gas-row-template");
   const laborRowTemplate = document.getElementById("labor-row-template");
+  const useGasAverageBtn = document.getElementById("use-gas-average");
+  const energyPresetButtons = document.querySelectorAll(".energy-preset");
   const productionQuantityInput = document.getElementById("production-quantity");
   const sellingPriceInput = document.getElementById("selling-price");
   const reportIngredients = document.getElementById("report-ingredients");
@@ -651,13 +653,16 @@ document.addEventListener("DOMContentLoaded", () => {
     let subtotal = 0;
 
     [...energyBody.querySelectorAll("tr")].forEach((row) => {
-      const power = calculateRowCost(row.querySelector(".energy-power").value);
-      const time = calculateRowCost(row.querySelector(".energy-time").value);
-      const consumptionKwh = ((power || 0) * (time || 0)) / 60;
-      subtotal += consumptionKwh * rate;
+      const powerWatts = calculateRowCost(row.querySelector(".energy-power")?.value);
+      const timeMinutes = calculateRowCost(row.querySelector(".energy-time")?.value);
+      const powerKw = powerWatts / 1000;
+      const consumptionKwh = (powerKw || 0) * ((timeMinutes || 0) / 60);
+      const cost = consumptionKwh * rate;
 
-      row.querySelector(".energy-consumption").textContent = consumptionKwh.toFixed(2).replace(".", ",");
-      row.querySelector(".energy-cost").textContent = currencyFormatter.format(consumptionKwh * rate || 0);
+      row.querySelector(".energy-consumption").textContent = consumptionKwh.toFixed(3).replace(".", ",");
+      row.querySelector(".energy-cost").textContent = currencyFormatter.format(cost || 0);
+
+      subtotal += cost;
     });
 
     energyTotalCell.textContent = currencyFormatter.format(subtotal || 0);
@@ -672,10 +677,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const consumptionRate = calculateRowCost(row.querySelector(".gas-consumption-rate").value);
       const time = calculateRowCost(row.querySelector(".gas-time").value);
       const totalVolume = ((consumptionRate || 0) * (time || 0)) / 60;
-      subtotal += totalVolume * rate;
+      const cost = totalVolume * rate;
 
       row.querySelector(".gas-consumption").textContent = totalVolume.toFixed(3).replace(".", ",");
-      row.querySelector(".gas-cost").textContent = currencyFormatter.format(totalVolume * rate || 0);
+      row.querySelector(".gas-cost").textContent = currencyFormatter.format(cost || 0);
+
+      subtotal += cost;
     });
 
     gasTotalCell.textContent = currencyFormatter.format(subtotal || 0);
@@ -763,7 +770,8 @@ document.addEventListener("DOMContentLoaded", () => {
     energy: currencyFormatter.format(operationsSummary.energy || 0),
     gas: currencyFormatter.format(operationsSummary.gas || 0),
     labor: currencyFormatter.format(operationsSummary.labor || 0),
-    total: currencyFormatter.format(operationsSummary.total || 0)
+    total: currencyFormatter.format(operationsSummary.total || 0),
+    raw: { ...operationsSummary }
   });
 
   const formatSalesSnapshot = (salesSnapshot) => ({
@@ -773,7 +781,8 @@ document.addEventListener("DOMContentLoaded", () => {
     sellingPrice: currencyFormatter.format(salesSnapshot.sellingPrice || 0),
     grossRevenue: currencyFormatter.format(salesSnapshot.grossRevenue || 0),
     profit: currencyFormatter.format(salesSnapshot.profit || 0),
-    margin: `${salesSnapshot.margin.toFixed(1)}%`
+    margin: `${salesSnapshot.margin.toFixed(1)}%`,
+    raw: { ...salesSnapshot }
   });
 
   const resetForm = () => {
@@ -820,6 +829,7 @@ document.addEventListener("DOMContentLoaded", () => {
       energyRows: collectEnergyRows(),
       gasRows: collectGasRows(),
       laborRows: collectLaborRows(),
+      useGasAverage: Boolean(useGasAverageBtn?.dataset.active === "true"),
       productionQuantity: productionQuantityInput.value,
       sellingPrice: sellingPriceInput.value,
       updatedAt: timestamp
@@ -861,6 +871,13 @@ document.addEventListener("DOMContentLoaded", () => {
     recipeNameInput.value = recipe.name;
     energyRateInput.value = recipe.energyRate ?? energyRateInput.value;
     gasRateInput.value = recipe.gasRate ?? gasRateInput.value;
+    if (recipe.useGasAverage) {
+      useGasAverageBtn.dataset.active = "true";
+      useGasAverageBtn.classList.add("active");
+    } else if (useGasAverageBtn) {
+      delete useGasAverageBtn.dataset.active;
+      useGasAverageBtn.classList.remove("active");
+    }
     laborRateInput.value = recipe.laborRate ?? laborRateInput.value;
     productionQuantityInput.value = recipe.productionQuantity || "";
     sellingPriceInput.value = recipe.sellingPrice || "";
@@ -969,12 +986,16 @@ document.addEventListener("DOMContentLoaded", () => {
     energyBody.appendChild(row);
 
     if (rowData) {
+      const storedPower = calculateRowCost(rowData.power);
+      const powerInWatts = storedPower > 0 && storedPower <= 10 ? storedPower * 1000 : storedPower;
+
       row.querySelector(".energy-name").value = rowData.name || "";
-      row.querySelector(".energy-power").value = rowData.power || "";
+      row.querySelector(".energy-power").value = powerInWatts || "";
+      row.querySelector(".energy-frequency").value = rowData.frequency || "";
       row.querySelector(".energy-time").value = rowData.time || "";
     }
 
-    updateOperationsTotal();
+    updateSalesReports();
   }
 
   function addGasRow(rowData = null) {
@@ -983,13 +1004,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     inputs.forEach((input) => {
       input.addEventListener("input", () => {
-        updateOperationsTotal();
+        updateSalesReports();
       });
     });
 
     row.querySelector(".remove-row").addEventListener("click", () => {
       row.remove();
-      updateOperationsTotal();
+      updateSalesReports();
     });
 
     gasBody.appendChild(row);
@@ -1000,7 +1021,7 @@ document.addEventListener("DOMContentLoaded", () => {
       row.querySelector(".gas-time").value = rowData.time || "";
     }
 
-    updateOperationsTotal();
+    updateSalesReports();
   }
 
   function addLaborRow(rowData = null) {
@@ -1009,13 +1030,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     inputs.forEach((input) => {
       input.addEventListener("input", () => {
-        updateOperationsTotal();
+        updateSalesReports();
       });
     });
 
     row.querySelector(".remove-row").addEventListener("click", () => {
       row.remove();
-      updateOperationsTotal();
+      updateSalesReports();
     });
 
     laborBody.appendChild(row);
@@ -1026,7 +1047,7 @@ document.addEventListener("DOMContentLoaded", () => {
       row.querySelector(".labor-rate").value = rowData.rate || "";
     }
 
-    updateOperationsTotal();
+    updateSalesReports();
   }
 
   addRowBtn.addEventListener("click", addRow);
@@ -1046,10 +1067,81 @@ document.addEventListener("DOMContentLoaded", () => {
   productionQuantityInput.addEventListener("input", updateSalesReports);
   sellingPriceInput.addEventListener("input", updateSalesReports);
 
+  document.querySelectorAll(".labor-suggestion").forEach((button) => {
+    button.addEventListener("click", () => {
+      laborRateInput.value = button.dataset.rate || "";
+      updateSalesReports();
+    });
+  });
+
+  const GAS_AVERAGE_RATE = 0.0147;
+
+  if (useGasAverageBtn) {
+    useGasAverageBtn.addEventListener("click", () => {
+      const isActive = useGasAverageBtn.dataset.active === "true";
+      if (isActive) {
+        delete useGasAverageBtn.dataset.active;
+        useGasAverageBtn.classList.remove("active");
+        return;
+      }
+
+      useGasAverageBtn.dataset.active = "true";
+      useGasAverageBtn.classList.add("active");
+
+      [...gasBody.querySelectorAll("tr")].forEach((row) => {
+        const rateInput = row.querySelector(".gas-consumption-rate");
+        if (rateInput && !rateInput.value) {
+          rateInput.value = GAS_AVERAGE_RATE.toFixed(4);
+        }
+      });
+
+      if (!gasBody.querySelector("tr")) {
+        addGasRow({ name: "Consumo médio Comgás", consumptionRate: GAS_AVERAGE_RATE.toFixed(4), time: "60" });
+      } else {
+        updateSalesReports();
+      }
+    });
+  }
+
+  if (energyPresetButtons.length) {
+    energyPresetButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const { name, power, frequency, time } = button.dataset;
+        const presetData = {
+          name: name || "",
+          power: power || "",
+          frequency: frequency || "",
+          time: time || ""
+        };
+
+        const targetRow = [...energyBody.querySelectorAll("tr")].find((row) => {
+          const rowName = row.querySelector(".energy-name")?.value.trim();
+          const rowPower = row.querySelector(".energy-power")?.value;
+          const rowTime = row.querySelector(".energy-time")?.value;
+          return !rowName && !rowPower && !rowTime;
+        });
+
+        if (targetRow) {
+          targetRow.querySelector(".energy-name").value = presetData.name;
+          targetRow.querySelector(".energy-power").value = presetData.power;
+          targetRow.querySelector(".energy-frequency").value = presetData.frequency;
+          targetRow.querySelector(".energy-time").value = presetData.time;
+          updateSalesReports();
+        } else {
+          addEnergyRow(presetData);
+        }
+
+        button.classList.add("active");
+        window.setTimeout(() => button.classList.remove("active"), 800);
+      });
+    });
+  }
+
   const collectEnergyRows = () =>
     [...energyBody.querySelectorAll("tr")].map((row) => ({
       name: row.querySelector(".energy-name").value,
       power: row.querySelector(".energy-power").value,
+      frequency: row.querySelector(".energy-frequency").value,
       time: row.querySelector(".energy-time").value
     }));
 

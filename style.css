@@ -126,6 +126,18 @@ main {
   font-size: 0.85rem;
 }
 
+.rate-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.rate-suggestions .small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+}
+
 .operations-section {
   display: grid;
   gap: 0.75rem;
@@ -136,6 +148,29 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.operations-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.operations-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.operations-presets .small {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.operations-actions .active {
+  background-color: rgba(110, 55, 32, 0.08);
+  border-color: rgba(110, 55, 32, 0.4);
 }
 
 table.compact th,
