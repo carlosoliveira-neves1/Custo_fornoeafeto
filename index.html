@@ -187,6 +187,77 @@
       </div>
     </section>
 
+    <section class="card reports-card">
+      <header class="card-header">
+        <h2>Análise de vendas</h2>
+        <div class="reports-actions">
+          <label class="inline-input">
+            <span>Quantidade produzida</span>
+            <input type="number" id="production-quantity" min="1" step="1" placeholder="Ex.: 12" />
+          </label>
+          <label class="inline-input">
+            <span>Preço de venda praticado (R$)</span>
+            <input type="number" id="selling-price" min="0" step="0.01" placeholder="Ex.: 75" />
+          </label>
+        </div>
+      </header>
+
+      <div class="reports-grid">
+        <article class="report-card">
+          <h3>Resumo da receita</h3>
+          <dl>
+            <div>
+              <dt>Custo ingredientes</dt>
+              <dd id="report-ingredients">R$ 0,00</dd>
+            </div>
+            <div>
+              <dt>Custo operacionais</dt>
+              <dd id="report-operations">R$ 0,00</dd>
+            </div>
+            <div>
+              <dt>Custo total produção</dt>
+              <dd id="report-total">R$ 0,00</dd>
+            </div>
+            <div>
+              <dt>Custo unitário</dt>
+              <dd id="report-unit-cost">R$ 0,00</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="report-card">
+          <h3>Vendas atuais</h3>
+          <dl>
+            <div>
+              <dt>Receita bruta</dt>
+              <dd id="report-gross-revenue">R$ 0,00</dd>
+            </div>
+            <div>
+              <dt>Lucro estimado</dt>
+              <dd id="report-profit">R$ 0,00</dd>
+            </div>
+            <div>
+              <dt>Margem (%)</dt>
+              <dd id="report-margin">0%</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="report-card">
+          <h3>Sugestão de preço</h3>
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Margem</th>
+                <th>Preço sugerido</th>
+              </tr>
+            </thead>
+            <tbody id="suggestion-body"></tbody>
+          </table>
+        </article>
+      </div>
+    </section>
+
     <div class="info-grid">
       <section class="card helper">
         <h2>Como usar</h2>

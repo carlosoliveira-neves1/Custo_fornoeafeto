@@ -75,6 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const energyRowTemplate = document.getElementById("energy-row-template");
   const gasRowTemplate = document.getElementById("gas-row-template");
   const laborRowTemplate = document.getElementById("labor-row-template");
+  const productionQuantityInput = document.getElementById("production-quantity");
+  const sellingPriceInput = document.getElementById("selling-price");
+  const reportIngredients = document.getElementById("report-ingredients");
+  const reportOperations = document.getElementById("report-operations");
+  const reportTotal = document.getElementById("report-total");
+  const reportUnitCost = document.getElementById("report-unit-cost");
+  const reportGrossRevenue = document.getElementById("report-gross-revenue");
+  const reportProfit = document.getElementById("report-profit");
+  const reportMargin = document.getElementById("report-margin");
+  const suggestionBody = document.getElementById("suggestion-body");
 
   let recipeCache = [];
   let currentRecipeId = null;
@@ -228,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     costCell.textContent = currencyFormatter.format(cost || 0);
-    updateIngredientTotal();
+    updateSalesReports();
   }
 
   function updateIngredientTotal() {
@@ -292,7 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     removeBtn.addEventListener("click", () => {
       row.remove();
-      updateIngredientTotal();
+      updateSalesReports();
     });
   }
 
@@ -410,13 +420,25 @@ document.addEventListener("DOMContentLoaded", () => {
       `"Total custos operacionais";"";"";"";"";"";"";"${operationsTotals.total}"`
     ];
 
+    const salesLines = [
+      "",
+      `"Custo total produção";"";"";"";"";"";"";"${salesTotals.productionTotal}"`,
+      `"Quantidade produzida";"";"";"";"";"";"";"${salesTotals.quantity}"`,
+      `"Custo unitário";"";"";"";"";"";"";"${salesTotals.unitCost}"`,
+      `"Preço praticado";"";"";"";"";"";"";"${salesTotals.sellingPrice}"`,
+      `"Receita bruta";"";"";"";"";"";"";"${salesTotals.grossRevenue}"`,
+      `"Lucro estimado";"";"";"";"";"";"";"${salesTotals.profit}"`,
+      `"Margem";"";"";"";"";"";"";"${salesTotals.margin}"`
+    ];
+
     return [
       "sep=;",
       `"Receita";"${recipeName.replace(/"/g, '""')}"`,
       header.map((label) => `"${label}"`).join(";"),
       ...lines,
       `"Total ingredientes";"";"";"";"";"";"";"${total}"`,
-      ...operationsLines
+      ...operationsLines,
+      ...salesLines
     ].join("\n");
   };
 
@@ -429,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
 
-  const rowsToPdfHtml = (rows, recipeName, total, operationsTotals) => {
+  const rowsToPdfHtml = (rows, recipeName, total, operationsTotals, salesTotals) => {
     const currentDate = new Date().toLocaleDateString("pt-BR");
     const tableRows = rows
       .map((row) => {
@@ -580,6 +602,34 @@ document.addEventListener("DOMContentLoaded", () => {
               <td>Total custos operacionais</td>
               <td>${escapeHtml(operationsTotals?.total ?? currencyFormatter.format(0))}</td>
             </tr>
+            <tr>
+              <td>Custo total produção</td>
+              <td>${escapeHtml(salesTotals?.productionTotal ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Quantidade produzida</td>
+              <td>${escapeHtml(salesTotals?.quantity ?? "0")}</td>
+            </tr>
+            <tr>
+              <td>Custo unitário</td>
+              <td>${escapeHtml(salesTotals?.unitCost ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Preço praticado</td>
+              <td>${escapeHtml(salesTotals?.sellingPrice ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Receita bruta</td>
+              <td>${escapeHtml(salesTotals?.grossRevenue ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Lucro estimado</td>
+              <td>${escapeHtml(salesTotals?.profit ?? currencyFormatter.format(0))}</td>
+            </tr>
+            <tr>
+              <td>Margem</td>
+              <td>${escapeHtml(salesTotals?.margin ?? "0%")}</td>
+            </tr>
           </table>
           <p class="footer-note">Documento gerado automaticamente pela calculadora de custos Forno &amp; Afeto.</p>
           <script>
@@ -658,8 +708,73 @@ document.addEventListener("DOMContentLoaded", () => {
     const labor = updateLaborTotals();
     const totalOperations = energy + gas + labor;
     operationsTotalCell.textContent = currencyFormatter.format(totalOperations || 0);
-    return totalOperations;
+    return { energy, gas, labor, total: totalOperations };
   };
+
+  const updateSalesReports = () => {
+    const ingredientTotal = updateIngredientTotal();
+    const operationsSummary = updateOperationsTotal();
+    const operationsTotal = operationsSummary.total;
+    const productionQuantity = Math.max(1, Math.floor(calculateRowCost(productionQuantityInput.value) || 0));
+    const sellingPrice = calculateRowCost(sellingPriceInput.value);
+
+    const productionTotal = ingredientTotal + operationsTotal;
+    const unitCost = productionQuantity > 0 ? productionTotal / productionQuantity : productionTotal;
+    const grossRevenue = sellingPrice > 0 && productionQuantity > 0 ? sellingPrice * productionQuantity : 0;
+    const profit = grossRevenue - productionTotal;
+    const margin = grossRevenue > 0 ? (profit / grossRevenue) * 100 : 0;
+
+    reportIngredients.textContent = currencyFormatter.format(ingredientTotal || 0);
+    reportOperations.textContent = currencyFormatter.format(operationsTotal || 0);
+    reportTotal.textContent = currencyFormatter.format(productionTotal || 0);
+    reportUnitCost.textContent = currencyFormatter.format(unitCost || 0);
+    reportGrossRevenue.textContent = currencyFormatter.format(grossRevenue || 0);
+    reportProfit.textContent = currencyFormatter.format(profit || 0);
+    reportMargin.textContent = `${margin.toFixed(1)}%`;
+
+    const margins = [0.5, 1, 1.5];
+    suggestionBody.innerHTML = "";
+    margins.forEach((multiplier) => {
+      const suggested = unitCost * (1 + multiplier);
+      const row = document.createElement("tr");
+      const labelCell = document.createElement("td");
+      labelCell.textContent = `${Math.round(multiplier * 100)}%`;
+      const valueCell = document.createElement("td");
+      valueCell.textContent = currencyFormatter.format(suggested || 0);
+      row.appendChild(labelCell);
+      row.appendChild(valueCell);
+      suggestionBody.appendChild(row);
+    });
+
+    return {
+      ingredientTotal,
+      operationsSummary,
+      productionTotal,
+      unitCost,
+      productionQuantity,
+      sellingPrice,
+      grossRevenue,
+      profit,
+      margin
+    };
+  };
+
+  const formatOperationsSnapshot = (operationsSummary) => ({
+    energy: currencyFormatter.format(operationsSummary.energy || 0),
+    gas: currencyFormatter.format(operationsSummary.gas || 0),
+    labor: currencyFormatter.format(operationsSummary.labor || 0),
+    total: currencyFormatter.format(operationsSummary.total || 0)
+  });
+
+  const formatSalesSnapshot = (salesSnapshot) => ({
+    productionTotal: currencyFormatter.format(salesSnapshot.productionTotal || 0),
+    quantity: String(salesSnapshot.productionQuantity || 0),
+    unitCost: currencyFormatter.format(salesSnapshot.unitCost || 0),
+    sellingPrice: currencyFormatter.format(salesSnapshot.sellingPrice || 0),
+    grossRevenue: currencyFormatter.format(salesSnapshot.grossRevenue || 0),
+    profit: currencyFormatter.format(salesSnapshot.profit || 0),
+    margin: `${salesSnapshot.margin.toFixed(1)}%`
+  });
 
   const resetForm = () => {
     ingredientBody.innerHTML = "";
@@ -671,9 +786,10 @@ document.addEventListener("DOMContentLoaded", () => {
     addGasRow();
     addLaborRow();
     recipeNameInput.value = "";
+    productionQuantityInput.value = "";
+    sellingPriceInput.value = "";
     currentRecipeId = null;
-    updateIngredientTotal();
-    updateOperationsTotal();
+    updateSalesReports();
   };
 
   const saveCurrentRecipe = () => {
@@ -686,7 +802,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const rowsData = collectRowsData();
     const total = totalCostCell.textContent;
-    const operationsSnapshot = getOperationsSnapshot();
+    const salesSnapshot = updateSalesReports();
+    const operationsSnapshot = formatOperationsSnapshot(salesSnapshot.operationsSummary);
+    const formattedSales = formatSalesSnapshot(salesSnapshot);
     const timestamp = new Date().toISOString();
 
     const recipePayload = {
@@ -695,12 +813,15 @@ document.addEventListener("DOMContentLoaded", () => {
       rows: rowsData,
       total,
       operationsTotals: operationsSnapshot,
+      salesTotals: formattedSales,
       energyRate: energyRateInput.value,
       gasRate: gasRateInput.value,
       laborRate: laborRateInput.value,
       energyRows: collectEnergyRows(),
       gasRows: collectGasRows(),
       laborRows: collectLaborRows(),
+      productionQuantity: productionQuantityInput.value,
+      sellingPrice: sellingPriceInput.value,
       updatedAt: timestamp
     };
 
@@ -741,9 +862,10 @@ document.addEventListener("DOMContentLoaded", () => {
     energyRateInput.value = recipe.energyRate ?? energyRateInput.value;
     gasRateInput.value = recipe.gasRate ?? gasRateInput.value;
     laborRateInput.value = recipe.laborRate ?? laborRateInput.value;
+    productionQuantityInput.value = recipe.productionQuantity || "";
+    sellingPriceInput.value = recipe.sellingPrice || "";
     currentRecipeId = recipe.id;
-    updateIngredientTotal();
-    updateOperationsTotal();
+    updateSalesReports();
     showStatus(`Receita "${recipe.name}" carregada.`, "success");
   };
 
@@ -766,7 +888,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const rowsData = collectRowsData();
-    const operationsTotals = getOperationsSnapshot();
+    const salesSnapshot = updateSalesReports();
+    const operationsTotals = formatOperationsSnapshot(salesSnapshot.operationsSummary);
+    const formattedSales = formatSalesSnapshot(salesSnapshot);
     const hasContent = rowsData.some(
       (row) => row.ingredientValue || row.customName || row.amountUsed || row.amountPurchased || row.pricePaid
     );
@@ -776,7 +900,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const csvContent = rowsToCSV(rowsData, name, totalCostCell.textContent, operationsTotals);
+    const csvContent = rowsToCSV(rowsData, name, totalCostCell.textContent, operationsTotals, formattedSales);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -790,20 +914,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showStatus("Arquivo CSV gerado com sucesso!", "success");
   };
 
-  const getOperationsSnapshot = () => {
-    const energy = updateEnergyTotals();
-    const gas = updateGasTotals();
-    const labor = updateLaborTotals();
-    const total = energy + gas + labor;
-    return {
-      energy: currencyFormatter.format(energy || 0),
-      gas: currencyFormatter.format(gas || 0),
-      labor: currencyFormatter.format(labor || 0),
-      total: currencyFormatter.format(total || 0),
-      raw: { energy, gas, labor, total }
-    };
-  };
-
   const exportCurrentRecipePdf = () => {
     const name = recipeNameInput.value.trim();
     if (!name) {
@@ -813,7 +923,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const rowsData = collectRowsData();
-    const operationsTotals = getOperationsSnapshot();
+    const salesSnapshot = updateSalesReports();
+    const operationsTotals = formatOperationsSnapshot(salesSnapshot.operationsSummary);
+    const formattedSales = formatSalesSnapshot(salesSnapshot);
     const hasContent = rowsData.some(
       (row) => row.ingredientValue || row.customName || row.amountUsed || row.amountPurchased || row.pricePaid
     );
@@ -830,7 +942,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     pdfWindow.document.open();
-    pdfWindow.document.write(rowsToPdfHtml(rowsData, name, totalCostCell.textContent, operationsTotals));
+    pdfWindow.document.write(rowsToPdfHtml(rowsData, name, totalCostCell.textContent, operationsTotals, formattedSales));
     pdfWindow.document.close();
 
     showStatus("Pré-visualização em PDF aberta em nova janela.", "success");
@@ -845,13 +957,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     inputs.forEach((input) => {
       input.addEventListener("input", () => {
-        updateOperationsTotal();
+        updateSalesReports();
       });
     });
 
     row.querySelector(".remove-row").addEventListener("click", () => {
       row.remove();
-      updateOperationsTotal();
+      updateSalesReports();
     });
 
     energyBody.appendChild(row);
@@ -928,9 +1040,11 @@ document.addEventListener("DOMContentLoaded", () => {
   addEnergyRowBtn.addEventListener("click", () => addEnergyRow());
   addGasRowBtn.addEventListener("click", () => addGasRow());
   addLaborRowBtn.addEventListener("click", () => addLaborRow());
-  energyRateInput.addEventListener("input", updateOperationsTotal);
-  gasRateInput.addEventListener("input", updateOperationsTotal);
-  laborRateInput.addEventListener("input", updateOperationsTotal);
+  energyRateInput.addEventListener("input", updateSalesReports);
+  gasRateInput.addEventListener("input", updateSalesReports);
+  laborRateInput.addEventListener("input", updateSalesReports);
+  productionQuantityInput.addEventListener("input", updateSalesReports);
+  sellingPriceInput.addEventListener("input", updateSalesReports);
 
   const collectEnergyRows = () =>
     [...energyBody.querySelectorAll("tr")].map((row) => ({
@@ -956,4 +1070,8 @@ document.addEventListener("DOMContentLoaded", () => {
   recipeCache = loadRecipesFromStorage();
   populateHistory();
   addRow();
+  addEnergyRow();
+  addGasRow();
+  addLaborRow();
+  updateSalesReports();
 });
