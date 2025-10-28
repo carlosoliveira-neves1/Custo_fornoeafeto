@@ -679,7 +679,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const totalVolume = ((consumptionRate || 0) * (time || 0)) / 60;
       const cost = totalVolume * rate;
 
-      row.querySelector(".gas-consumption").textContent = totalVolume.toFixed(3).replace(".", ",");
+      row.querySelector(".gas-consumption").textContent = totalVolume.toFixed(4).replace(".", ",");
       row.querySelector(".gas-cost").textContent = currencyFormatter.format(cost || 0);
 
       subtotal += cost;
