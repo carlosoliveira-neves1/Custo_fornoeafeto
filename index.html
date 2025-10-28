@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forno & Afeto · Calculadora de Custos</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo-circle">
+        <div class="oven-top">
+          <span class="chimney"></span>
+          <span class="heart">❤</span>
+        </div>
+      </div>
+      <div class="title-group">
+        <h1>Forno &amp; Afeto</h1>
+        <p>Calculadora de custo de receitas</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card recipe-card">
+      <div class="recipe-name-group">
+        <label for="recipe-name">Nome da receita</label>
+        <input type="text" id="recipe-name" placeholder="Ex.: Bolo de cenoura da casa" />
+      </div>
+      <div class="recipe-actions">
+        <button type="button" class="primary" id="save-recipe">Salvar receita</button>
+        <button type="button" class="ghost" id="new-recipe">Nova receita</button>
+        <button type="button" class="ghost" id="export-recipe">Exportar CSV</button>
+        <button type="button" class="ghost" id="export-pdf">Exportar PDF</button>
+      </div>
+      <p class="recipe-status" id="recipe-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card">
+      <header class="card-header">
+        <h2>Ingredientes</h2>
+        <button type="button" class="primary" id="add-row-btn">Adicionar ingrediente</button>
+      </header>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Ingrediente</th>
+              <th>Categoria</th>
+              <th>Unidade usada</th>
+              <th>Qtd. utilizada</th>
+              <th>Qtd. comprada</th>
+              <th>Preço pago (R$)</th>
+              <th>Custo na receita</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ingredient-body"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="6">Total</td>
+              <td id="total-cost">R$ 0,00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <div class="info-grid">
+      <section class="card helper">
+        <h2>Como usar</h2>
+        <ol>
+          <li>Escolha um ingrediente ou selecione “Outro” para digitar um novo.</li>
+          <li>Escolha a categoria de medida: <strong>Peso</strong>, <strong>Volume</strong> ou <strong>Unidade</strong>.</li>
+          <li>Informe a unidade e as quantidades utilizadas e compradas.</li>
+          <li>Preencha o valor pago pelo ingrediente. O custo será calculado automaticamente.</li>
+        </ol>
+      </section>
+
+      <section class="card history-card">
+        <h2>Receitas salvas</h2>
+        <p class="history-hint">Salve suas combinações para reutilizar depois.</p>
+        <ul class="history-list" id="recipe-history">
+          <li class="history-empty">Nenhuma receita salva ainda.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <template id="ingredient-row-template">
+    <tr>
+      <td class="ingredient-cell">
+        <select class="ingredient-select">
+          <option value="">Selecione…</option>
+        </select>
+        <input type="text" class="custom-ingredient" placeholder="Digite o ingrediente" />
+      </td>
+      <td>
+        <select class="category-select">
+          <option value="peso">Peso</option>
+          <option value="volume">Volume</option>
+          <option value="unidade">Unidade</option>
+        </select>
+      </td>
+      <td>
+        <select class="unit-select"></select>
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" class="amount-used" placeholder="0" />
+      </td>
+      <td class="purchase-group">
+        <input type="number" min="0" step="0.01" class="amount-purchased" placeholder="0" />
+        <select class="purchase-unit-select"></select>
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" class="price-paid" placeholder="0,00" />
+      </td>
+      <td class="cost-cell">R$ 0,00</td>
+      <td>
+        <button type="button" class="ghost remove-row">✕</button>
+      </td>
+    </tr>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
