@@ -105,6 +105,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const salesPeriodTotal = document.getElementById("sales-period-total");
   const clearSalesFilterBtn = document.getElementById("clear-sales-filter");
   const exportSalesCsvBtn = document.getElementById("export-sales-csv");
+  const tabButtons = document.querySelectorAll(".tab-button");
+  const tabPanels = document.querySelectorAll(".tab-panel");
 
   let recipeCache = [];
   let currentRecipeId = null;
@@ -445,6 +447,37 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSalesSummary(filtered);
     renderSalesLog(filtered);
     updateSalesPeriodTotal(filtered);
+  };
+
+  const activateTab = (targetPanelId) => {
+    tabButtons.forEach((button) => {
+      const isActive = button.dataset.panel === targetPanelId;
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-selected", String(isActive));
+      button.setAttribute("tabindex", isActive ? "0" : "-1");
+    });
+
+    tabPanels.forEach((panel) => {
+      const isActive = panel.id === targetPanelId;
+      panel.classList.toggle("active", isActive);
+      if (isActive) {
+        panel.removeAttribute("hidden");
+      } else {
+        panel.setAttribute("hidden", "true");
+      }
+    });
+
+    if (targetPanelId === "panel-sales") {
+      updateSalesViews();
+    }
+  };
+
+  const handleTabClick = (event) => {
+    const button = event.currentTarget;
+    if (!(button instanceof HTMLElement)) return;
+    const targetPanelId = button.dataset.panel;
+    if (!targetPanelId) return;
+    activateTab(targetPanelId);
   };
 
   const escapeCsvValue = (value) => {
@@ -1552,6 +1585,12 @@ document.addEventListener("DOMContentLoaded", () => {
     exportSalesCsvBtn.addEventListener("click", handleSalesExport);
   }
 
+  if (tabButtons.length) {
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", handleTabClick);
+    });
+  }
+
   document.querySelectorAll(".labor-suggestion").forEach((button) => {
     button.addEventListener("click", () => {
       laborRateInput.value = button.dataset.rate || "";
@@ -1649,6 +1688,10 @@ document.addEventListener("DOMContentLoaded", () => {
   salesCache = loadSalesFromStorage();
   defaultSalesDate();
   updateSalesViews();
+  const activeTabButton = [...tabButtons].find((button) => button.classList.contains("active"));
+  if (activeTabButton?.dataset.panel) {
+    activateTab(activeTabButton.dataset.panel);
+  }
   addRow();
   addEnergyRow();
   addGasRow();

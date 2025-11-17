@@ -26,6 +26,12 @@
   </header>
 
   <main>
+    <nav class="tab-nav" role="tablist">
+      <button type="button" id="tab-costs" class="tab-button active" data-panel="panel-costs" aria-controls="panel-costs" aria-selected="true">Custos</button>
+      <button type="button" id="tab-sales" class="tab-button" data-panel="panel-sales" aria-controls="panel-sales" aria-selected="false">Vendas</button>
+    </nav>
+
+    <div id="panel-costs" class="tab-panel active" role="tabpanel" aria-labelledby="tab-costs">
     <section class="card recipe-card">
       <div class="recipe-name-group">
         <label for="recipe-name">Nome da receita</label>
@@ -300,7 +306,10 @@
           <li class="history-empty">Nenhuma receita salva ainda.</li>
         </ul>
       </section>
+    </div>
+    </div>
 
+    <div id="panel-sales" class="tab-panel" role="tabpanel" aria-labelledby="tab-sales" hidden>
       <section class="card sales-card" aria-labelledby="sales-title">
         <div class="sales-header">
           <div>
