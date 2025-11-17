@@ -198,6 +198,165 @@ table.compact td {
   font-variant-numeric: tabular-nums;
 }
 
+.report.sales-card {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.sales-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sales-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sales-hint {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.sales-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.sales-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.sales-field {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.sales-product-wrapper {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.sales-product-field select {
+  min-width: 180px;
+}
+
+.sales-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sales-status {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.sales-status.success {
+  color: var(--success);
+}
+
+.sales-status.error {
+  color: #c62828;
+}
+
+.sales-filters {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 195, 153, 0.15);
+}
+
+.sales-filters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sales-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.sales-totals {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  box-shadow: inset 0 0 0 1px rgba(161, 85, 47, 0.15);
+}
+
+.sales-summary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sales-summary h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--accent-dark);
+}
+
+.sales-summary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.sales-summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 195, 153, 0.25);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.95rem;
+}
+
+.sales-empty {
+  color: var(--muted);
+  text-align: center;
+}
+
+.sales-log-body button.sales-delete {
+  font-size: 0.85rem;
+  color: #c62828;
+}
+
+.sales-log-body td {
+  vertical-align: top;
+}
+
+.sales-notes-field textarea {
+  resize: vertical;
+}
+
+.sales-card .table-scroll {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.5rem;
+}
+
 .reports-card {
   display: grid;
   gap: 1.5rem;

@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const STORAGE_KEY = "forno-afeto-receitas";
+  const SALES_STORAGE_KEY = "forno-afeto-sales";
   const MAX_RECIPES = 10;
 
   const addRowBtn = document.getElementById("add-row-btn");
@@ -78,18 +79,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const useGasAverageBtn = document.getElementById("use-gas-average");
   const energyPresetButtons = document.querySelectorAll(".energy-preset");
   const productionQuantityInput = document.getElementById("production-quantity");
+  const productionUnitInput = document.getElementById("production-unit");
   const sellingPriceInput = document.getElementById("selling-price");
   const reportIngredients = document.getElementById("report-ingredients");
   const reportOperations = document.getElementById("report-operations");
   const reportTotal = document.getElementById("report-total");
+  const reportYield = document.getElementById("report-yield");
   const reportUnitCost = document.getElementById("report-unit-cost");
   const reportGrossRevenue = document.getElementById("report-gross-revenue");
   const reportProfit = document.getElementById("report-profit");
   const reportMargin = document.getElementById("report-margin");
   const suggestionBody = document.getElementById("suggestion-body");
+  const salesForm = document.getElementById("sales-form");
+  const salesStatus = document.getElementById("sales-status");
+  const salesDateInput = document.getElementById("sales-date");
+  const salesRecipeSelect = document.getElementById("sales-recipe");
+  const salesProductInput = document.getElementById("sales-product");
+  const salesQuantityInput = document.getElementById("sales-quantity");
+  const salesNotesInput = document.getElementById("sales-notes");
+  const salesSummaryList = document.getElementById("sales-summary-list");
+  const salesLogBody = document.getElementById("sales-log-body");
+  const clearSalesFormBtn = document.getElementById("clear-sales-form");
+  const salesFilterStart = document.getElementById("sales-filter-start");
+  const salesFilterEnd = document.getElementById("sales-filter-end");
+  const salesPeriodTotal = document.getElementById("sales-period-total");
+  const clearSalesFilterBtn = document.getElementById("clear-sales-filter");
+  const exportSalesCsvBtn = document.getElementById("export-sales-csv");
 
   let recipeCache = [];
   let currentRecipeId = null;
+  let salesCache = [];
 
   const findIngredient = (value) => ingredientData.find((item) => item.value === value);
 
@@ -109,6 +128,22 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recipeCache));
   };
 
+  const loadSalesFromStorage = () => {
+    try {
+      const stored = localStorage.getItem(SALES_STORAGE_KEY);
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Não foi possível carregar o histórico de vendas.", error);
+      return [];
+    }
+  };
+
+  const persistSales = () => {
+    localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify(salesCache));
+  };
+
   const showStatus = (message, type = "info") => {
     recipeStatus.textContent = message;
     recipeStatus.classList.remove("success");
@@ -119,6 +154,50 @@ document.addEventListener("DOMContentLoaded", () => {
     if (type === "error") {
       recipeStatus.classList.add("error");
     }
+  };
+
+  const showSalesStatus = (message, type = "info") => {
+    if (!salesStatus) return;
+    salesStatus.textContent = message || "";
+    salesStatus.classList.remove("success");
+    salesStatus.classList.remove("error");
+    if (type === "success") {
+      salesStatus.classList.add("success");
+    }
+    if (type === "error") {
+      salesStatus.classList.add("error");
+    }
+  };
+
+  const populateSalesRecipeOptions = () => {
+    if (!salesRecipeSelect) return;
+    const previousValue = salesRecipeSelect.value;
+    salesRecipeSelect.innerHTML = "";
+
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Selecione uma receita";
+    salesRecipeSelect.appendChild(defaultOption);
+
+    recipeCache.forEach((recipe) => {
+      const option = document.createElement("option");
+      option.value = recipe.id;
+      option.textContent = recipe.name;
+      salesRecipeSelect.appendChild(option);
+    });
+
+    const customOption = document.createElement("option");
+    customOption.value = "custom";
+    customOption.textContent = "Outro produto";
+    salesRecipeSelect.appendChild(customOption);
+
+    if ([previousValue, "custom"].includes(previousValue) && salesRecipeSelect.querySelector(`option[value="${previousValue}"]`)) {
+      salesRecipeSelect.value = previousValue;
+    } else {
+      salesRecipeSelect.value = "";
+    }
+
+    toggleSalesProductInput();
   };
 
   const populateHistory = () => {
@@ -180,6 +259,328 @@ document.addEventListener("DOMContentLoaded", () => {
 
       historyList.appendChild(item);
     });
+
+    populateSalesRecipeOptions();
+  };
+
+  const findRecipeById = (recipeId) => recipeCache.find((recipe) => recipe.id === recipeId);
+
+  const toggleSalesProductInput = () => {
+    if (!salesRecipeSelect || !salesProductInput) return;
+    const selection = salesRecipeSelect.value;
+    if (!selection) {
+      salesProductInput.placeholder = "Nome do produto";
+      return;
+    }
+
+    if (selection === "custom") {
+      salesProductInput.placeholder = "Nome do produto";
+      return;
+    }
+
+    const recipe = findRecipeById(selection);
+    if (recipe) {
+      salesProductInput.placeholder = recipe.name;
+      if (!salesProductInput.value.trim()) {
+        salesProductInput.value = recipe.name;
+      }
+    }
+  };
+
+  const defaultSalesDate = () => {
+    if (!salesDateInput) return;
+    const todayISO = new Date().toISOString().split("T")[0];
+    if (!salesDateInput.value) {
+      salesDateInput.value = todayISO;
+    }
+  };
+
+  const clearSalesForm = () => {
+    if (!salesForm) return;
+    const todayISO = new Date().toISOString().split("T")[0];
+    if (salesDateInput) {
+      salesDateInput.value = todayISO;
+    }
+    if (salesRecipeSelect) {
+      salesRecipeSelect.value = "";
+    }
+    if (salesProductInput) {
+      salesProductInput.value = "";
+      salesProductInput.placeholder = "Nome do produto";
+    }
+    if (salesQuantityInput) {
+      salesQuantityInput.value = "";
+    }
+    if (salesNotesInput) {
+      salesNotesInput.value = "";
+    }
+    showSalesStatus("");
+    toggleSalesProductInput();
+  };
+
+  const normalizeQuantity = (value) => {
+    const numeric = Number.parseInt(value, 10);
+    return Number.isFinite(numeric) ? numeric : 0;
+  };
+
+  const formatDateLabel = (dateString) => {
+    if (!dateString) return "";
+    const parsed = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return dateString;
+    return parsed.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  const getFilteredSales = () => {
+    const startDate = salesFilterStart?.value || "";
+    const endDate = salesFilterEnd?.value || "";
+
+    return salesCache.filter((sale) => {
+      if (!sale.date) return false;
+      const afterStart = !startDate || sale.date >= startDate;
+      const beforeEnd = !endDate || sale.date <= endDate;
+      return afterStart && beforeEnd;
+    });
+  };
+
+  const renderSalesSummary = (entries) => {
+    if (!salesSummaryList) return;
+    salesSummaryList.innerHTML = "";
+
+    if (!entries.length) {
+      const emptyItem = document.createElement("li");
+      emptyItem.className = "sales-summary-empty";
+      emptyItem.textContent = "Nenhum registro ainda.";
+      salesSummaryList.appendChild(emptyItem);
+      return;
+    }
+
+    const byDate = entries.reduce((accumulator, sale) => {
+      const key = sale.date;
+      const current = accumulator.get(key) ?? 0;
+      return accumulator.set(key, current + (sale.quantity || 0));
+    }, new Map());
+
+    const ordered = [...byDate.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+
+    ordered.forEach(([date, total]) => {
+      const item = document.createElement("li");
+      item.className = "sales-summary-item";
+
+      const dateLabel = document.createElement("strong");
+      dateLabel.textContent = formatDateLabel(date);
+
+      const quantityLabel = document.createElement("span");
+      quantityLabel.textContent = total.toLocaleString("pt-BR");
+
+      item.appendChild(dateLabel);
+      item.appendChild(quantityLabel);
+      salesSummaryList.appendChild(item);
+    });
+  };
+
+  const renderSalesLog = (entries) => {
+    if (!salesLogBody) return;
+    salesLogBody.innerHTML = "";
+
+    if (!entries.length) {
+      const emptyRow = document.createElement("tr");
+      emptyRow.className = "sales-empty";
+      const cell = document.createElement("td");
+      cell.colSpan = 5;
+      cell.textContent = "Nenhum registro de venda salvo.";
+      emptyRow.appendChild(cell);
+      salesLogBody.appendChild(emptyRow);
+      return;
+    }
+
+    entries
+      .slice()
+      .sort((a, b) => {
+        if (a.date === b.date) {
+          return (b.createdAt || "").localeCompare(a.createdAt || "");
+        }
+        return a.date < b.date ? 1 : -1;
+      })
+      .forEach((sale) => {
+        const row = document.createElement("tr");
+
+        const dateCell = document.createElement("td");
+        dateCell.textContent = formatDateLabel(sale.date);
+
+        const productCell = document.createElement("td");
+        productCell.textContent = sale.productName || sale.recipeName || "—";
+
+        const quantityCell = document.createElement("td");
+        quantityCell.textContent = (sale.quantity || 0).toLocaleString("pt-BR");
+
+        const notesCell = document.createElement("td");
+        notesCell.textContent = sale.notes || "—";
+
+        const actionsCell = document.createElement("td");
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "ghost danger sales-delete";
+        deleteBtn.dataset.saleId = sale.id;
+        deleteBtn.textContent = "Remover";
+        actionsCell.appendChild(deleteBtn);
+
+        row.appendChild(dateCell);
+        row.appendChild(productCell);
+        row.appendChild(quantityCell);
+        row.appendChild(notesCell);
+        row.appendChild(actionsCell);
+
+        salesLogBody.appendChild(row);
+      });
+  };
+
+  const updateSalesPeriodTotal = (entries) => {
+    if (!salesPeriodTotal) return;
+    const total = entries.reduce((accumulator, sale) => accumulator + (sale.quantity || 0), 0);
+    salesPeriodTotal.textContent = total.toLocaleString("pt-BR");
+  };
+
+  const updateSalesViews = () => {
+    const filtered = getFilteredSales();
+    renderSalesSummary(filtered);
+    renderSalesLog(filtered);
+    updateSalesPeriodTotal(filtered);
+  };
+
+  const escapeCsvValue = (value) => {
+    const safe = value == null ? "" : String(value);
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
+
+  const getActiveSalesFilters = () => ({
+    start: salesFilterStart?.value || "",
+    end: salesFilterEnd?.value || ""
+  });
+
+  const salesEntriesToCsv = (entries) => {
+    const filters = getActiveSalesFilters();
+    const header = ["Data", "Produto", "Quantidade", "Observações", "Receita associada"];
+    const lines = entries.map((sale) => [
+      sale.date,
+      sale.productName || sale.recipeName || "",
+      sale.quantity ?? 0,
+      sale.notes || "",
+      sale.recipeName || ""
+    ].map(escapeCsvValue).join(";"));
+
+    const totalQuantity = entries.reduce((accumulator, sale) => accumulator + (sale.quantity || 0), 0);
+
+    const summaryLines = [
+      "",
+      ["Filtros aplicados", filters.start ? `Início: ${filters.start}` : "", filters.end ? `Fim: ${filters.end}` : "", "", ""].map(escapeCsvValue).join(";"),
+      ["Total vendido", totalQuantity, "", "", ""].map(escapeCsvValue).join(";")
+    ];
+
+    return [
+      "sep=;",
+      header.map(escapeCsvValue).join(";"),
+      ...lines,
+      ...summaryLines
+    ].join("\n");
+  };
+
+  const handleSalesExport = () => {
+    const filtered = getFilteredSales();
+    if (!filtered.length) {
+      showSalesStatus("Não há vendas no período selecionado para exportar.", "error");
+      return;
+    }
+
+    const csvContent = salesEntriesToCsv(filtered);
+    const filters = getActiveSalesFilters();
+    const baseNameParts = ["vendas"];
+    if (filters.start) baseNameParts.push(filters.start);
+    if (filters.end) baseNameParts.push(filters.end);
+    const baseName = sanitizeFileName(baseNameParts.join("-"));
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${baseName || "vendas"}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showSalesStatus("Exportação de vendas concluída!", "success");
+  };
+
+  const handleSalesSubmit = (event) => {
+    event.preventDefault();
+    if (!salesForm) return;
+
+    const dateValue = salesDateInput?.value;
+    if (!dateValue) {
+      showSalesStatus("Informe a data da venda.", "error");
+      salesDateInput?.focus();
+      return;
+    }
+
+    const selectedRecipeId = salesRecipeSelect?.value || "";
+    const recipe = selectedRecipeId && selectedRecipeId !== "custom" ? findRecipeById(selectedRecipeId) : null;
+
+    let productName = (salesProductInput?.value || "").trim();
+    if (recipe && !productName) {
+      productName = recipe.name;
+    }
+
+    if (!productName) {
+      showSalesStatus("Informe o nome do produto ou selecione uma receita.", "error");
+      salesProductInput?.focus();
+      return;
+    }
+
+    const quantityValue = normalizeQuantity(salesQuantityInput?.value);
+    if (quantityValue <= 0) {
+      showSalesStatus("A quantidade vendida deve ser maior que zero.", "error");
+      salesQuantityInput?.focus();
+      return;
+    }
+
+    const notesValue = (salesNotesInput?.value || "").trim();
+
+    const salePayload = {
+      id: crypto.randomUUID(),
+      date: dateValue,
+      recipeId: recipe?.id || "",
+      recipeName: recipe?.name || "",
+      productName,
+      quantity: quantityValue,
+      notes: notesValue,
+      createdAt: new Date().toISOString()
+    };
+
+    salesCache.unshift(salePayload);
+    persistSales();
+    clearSalesForm();
+    updateSalesViews();
+    showSalesStatus("Venda registrada com sucesso!", "success");
+  };
+
+  const deleteSale = (saleId) => {
+    if (!saleId) return;
+    const originalLength = salesCache.length;
+    salesCache = salesCache.filter((sale) => sale.id !== saleId);
+    if (salesCache.length === originalLength) return;
+    persistSales();
+    updateSalesViews();
+    showSalesStatus("Registro de venda removido.");
+  };
+
+  const clearSalesFilters = () => {
+    if (salesFilterStart) {
+      salesFilterStart.value = "";
+    }
+    if (salesFilterEnd) {
+      salesFilterEnd.value = "";
+    }
+    updateSalesViews();
   };
 
   function populateIngredientSelect(select) {
@@ -382,7 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "receita-forno-afeto";
 
-  const rowsToCSV = (rows, recipeName, total, operationsTotals) => {
+  const rowsToCSV = (rows, recipeName, total, operationsTotals, salesTotals = {}) => {
     const header = [
       "Ingrediente",
       "Categoria",
@@ -424,13 +825,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const salesLines = [
       "",
-      `"Custo total produção";"";"";"";"";"";"";"${salesTotals.productionTotal}"`,
-      `"Quantidade produzida";"";"";"";"";"";"";"${salesTotals.quantity}"`,
+      `"Custo total produção";"";"";"";"";"";"";"${salesTotals.productionTotal || ""}"`,
+      `"Quantidade produzida";"";"";"";"";"";"";"${salesTotals.quantity || ""}"`,
+      `"Rendimento";"";"";"";"";"";"";"${salesTotals.yieldDisplay || ""}"`,
       `"Custo unitário";"";"";"";"";"";"";"${salesTotals.unitCost}"`,
-      `"Preço praticado";"";"";"";"";"";"";"${salesTotals.sellingPrice}"`,
-      `"Receita bruta";"";"";"";"";"";"";"${salesTotals.grossRevenue}"`,
-      `"Lucro estimado";"";"";"";"";"";"";"${salesTotals.profit}"`,
-      `"Margem";"";"";"";"";"";"";"${salesTotals.margin}"`
+      `"Preço praticado";"";"";"";"";"";"";"${salesTotals.sellingPrice || ""}"`,
+      `"Receita bruta";"";"";"";"";"";"";"${salesTotals.grossRevenue || ""}"`,
+      `"Lucro estimado";"";"";"";"";"";"";"${salesTotals.profit || ""}"`,
+      `"Margem";"";"";"";"";"";"";"${salesTotals.margin || ""}"`
     ];
 
     return [
@@ -613,6 +1015,10 @@ document.addEventListener("DOMContentLoaded", () => {
               <td>${escapeHtml(salesTotals?.quantity ?? "0")}</td>
             </tr>
             <tr>
+              <td>Rendimento</td>
+              <td>${escapeHtml(salesTotals?.yieldDisplay ?? "")}</td>
+            </tr>
+            <tr>
               <td>Custo unitário</td>
               <td>${escapeHtml(salesTotals?.unitCost ?? currencyFormatter.format(0))}</td>
             </tr>
@@ -724,6 +1130,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const operationsTotal = operationsSummary.total;
     const productionQuantity = Math.max(1, Math.floor(calculateRowCost(productionQuantityInput.value) || 0));
     const sellingPrice = calculateRowCost(sellingPriceInput.value);
+    const productionUnitRaw = (productionUnitInput?.value || "").trim();
+    const defaultUnitLabel = productionQuantity === 1 ? "unidade" : "unidades";
+    const displayUnit = productionUnitRaw || defaultUnitLabel;
+    const formattedQuantity = productionQuantity.toLocaleString("pt-BR");
+    const yieldDisplay = `${formattedQuantity} ${displayUnit}`.trim();
 
     const productionTotal = ingredientTotal + operationsTotal;
     const unitCost = productionQuantity > 0 ? productionTotal / productionQuantity : productionTotal;
@@ -738,6 +1149,9 @@ document.addEventListener("DOMContentLoaded", () => {
     reportGrossRevenue.textContent = currencyFormatter.format(grossRevenue || 0);
     reportProfit.textContent = currencyFormatter.format(profit || 0);
     reportMargin.textContent = `${margin.toFixed(1)}%`;
+    if (reportYield) {
+      reportYield.textContent = yieldDisplay;
+    }
 
     const margins = [0.5, 1, 1.5];
     suggestionBody.innerHTML = "";
@@ -774,16 +1188,27 @@ document.addEventListener("DOMContentLoaded", () => {
     raw: { ...operationsSummary }
   });
 
-  const formatSalesSnapshot = (salesSnapshot) => ({
-    productionTotal: currencyFormatter.format(salesSnapshot.productionTotal || 0),
-    quantity: String(salesSnapshot.productionQuantity || 0),
-    unitCost: currencyFormatter.format(salesSnapshot.unitCost || 0),
-    sellingPrice: currencyFormatter.format(salesSnapshot.sellingPrice || 0),
-    grossRevenue: currencyFormatter.format(salesSnapshot.grossRevenue || 0),
-    profit: currencyFormatter.format(salesSnapshot.profit || 0),
-    margin: `${salesSnapshot.margin.toFixed(1)}%`,
-    raw: { ...salesSnapshot }
-  });
+  const formatSalesSnapshot = (salesSnapshot) => {
+    const quantityNumber = salesSnapshot.productionQuantity || 0;
+    const formattedQuantity = quantityNumber.toLocaleString("pt-BR");
+    const productionUnitRaw = salesSnapshot.productionUnit?.trim();
+    const defaultUnitLabel = quantityNumber === 1 ? "unidade" : "unidades";
+    const displayUnit = productionUnitRaw || defaultUnitLabel;
+    const yieldDisplay = salesSnapshot.yieldDisplay || `${formattedQuantity} ${displayUnit}`.trim();
+
+    return {
+      productionTotal: currencyFormatter.format(salesSnapshot.productionTotal || 0),
+      quantity: formattedQuantity,
+      unitCost: currencyFormatter.format(salesSnapshot.unitCost || 0),
+      sellingPrice: currencyFormatter.format(salesSnapshot.sellingPrice || 0),
+      grossRevenue: currencyFormatter.format(salesSnapshot.grossRevenue || 0),
+      profit: currencyFormatter.format(salesSnapshot.profit || 0),
+      margin: `${salesSnapshot.margin.toFixed(1)}%`,
+      yieldDisplay,
+      productionUnit: productionUnitRaw || "",
+      raw: { ...salesSnapshot, yieldDisplay, productionUnit: productionUnitRaw || "" }
+    };
+  };
 
   const resetForm = () => {
     ingredientBody.innerHTML = "";
@@ -796,6 +1221,9 @@ document.addEventListener("DOMContentLoaded", () => {
     addLaborRow();
     recipeNameInput.value = "";
     productionQuantityInput.value = "";
+    if (productionUnitInput) {
+      productionUnitInput.value = "";
+    }
     sellingPriceInput.value = "";
     currentRecipeId = null;
     updateSalesReports();
@@ -831,6 +1259,7 @@ document.addEventListener("DOMContentLoaded", () => {
       laborRows: collectLaborRows(),
       useGasAverage: Boolean(useGasAverageBtn?.dataset.active === "true"),
       productionQuantity: productionQuantityInput.value,
+      productionUnit: productionUnitInput?.value || "",
       sellingPrice: sellingPriceInput.value,
       updatedAt: timestamp
     };
@@ -880,6 +1309,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     laborRateInput.value = recipe.laborRate ?? laborRateInput.value;
     productionQuantityInput.value = recipe.productionQuantity || "";
+    if (productionUnitInput) {
+      productionUnitInput.value = recipe.productionUnit || "";
+    }
     sellingPriceInput.value = recipe.sellingPrice || "";
     currentRecipeId = recipe.id;
     updateSalesReports();
@@ -1065,7 +1497,60 @@ document.addEventListener("DOMContentLoaded", () => {
   gasRateInput.addEventListener("input", updateSalesReports);
   laborRateInput.addEventListener("input", updateSalesReports);
   productionQuantityInput.addEventListener("input", updateSalesReports);
+  if (productionUnitInput) {
+    productionUnitInput.addEventListener("input", updateSalesReports);
+  }
   sellingPriceInput.addEventListener("input", updateSalesReports);
+
+  if (salesForm) {
+    salesForm.addEventListener("submit", handleSalesSubmit);
+  }
+
+  if (salesRecipeSelect) {
+    salesRecipeSelect.addEventListener("change", () => {
+      toggleSalesProductInput();
+      if (salesRecipeSelect.value === "custom") {
+        salesProductInput?.focus();
+      }
+    });
+  }
+
+  if (clearSalesFormBtn) {
+    clearSalesFormBtn.addEventListener("click", () => {
+      clearSalesForm();
+      defaultSalesDate();
+    });
+  }
+
+  if (salesLogBody) {
+    salesLogBody.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.classList.contains("sales-delete")) return;
+      const saleId = target.dataset.saleId;
+      deleteSale(saleId);
+    });
+  }
+
+  const handleFilterChange = () => {
+    updateSalesViews();
+  };
+
+  if (salesFilterStart) {
+    salesFilterStart.addEventListener("change", handleFilterChange);
+  }
+
+  if (salesFilterEnd) {
+    salesFilterEnd.addEventListener("change", handleFilterChange);
+  }
+
+  if (clearSalesFilterBtn) {
+    clearSalesFilterBtn.addEventListener("click", clearSalesFilters);
+  }
+
+  if (exportSalesCsvBtn) {
+    exportSalesCsvBtn.addEventListener("click", handleSalesExport);
+  }
 
   document.querySelectorAll(".labor-suggestion").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1161,6 +1646,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   recipeCache = loadRecipesFromStorage();
   populateHistory();
+  salesCache = loadSalesFromStorage();
+  defaultSalesDate();
+  updateSalesViews();
   addRow();
   addEnergyRow();
   addGasRow();

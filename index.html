@@ -212,6 +212,10 @@
             <input type="number" id="production-quantity" min="1" step="1" placeholder="Ex.: 12" />
           </label>
           <label class="inline-input">
+            <span>Tipo de porção</span>
+            <input type="text" id="production-unit" maxlength="60" placeholder="Ex.: bolos de pote" />
+          </label>
+          <label class="inline-input">
             <span>Preço de venda praticado (R$)</span>
             <input type="number" id="selling-price" min="0" step="0.01" placeholder="Ex.: 75" />
           </label>
@@ -233,6 +237,10 @@
             <div>
               <dt>Custo total produção</dt>
               <dd id="report-total">R$ 0,00</dd>
+            </div>
+            <div>
+              <dt>Rendimento</dt>
+              <dd id="report-yield">1 unidade</dd>
             </div>
             <div>
               <dt>Custo unitário</dt>
@@ -291,6 +299,101 @@
         <ul class="history-list" id="recipe-history">
           <li class="history-empty">Nenhuma receita salva ainda.</li>
         </ul>
+      </section>
+
+      <section class="card sales-card" aria-labelledby="sales-title">
+        <div class="sales-header">
+          <div>
+            <h2 id="sales-title">Registro diário de vendas</h2>
+            <p class="sales-hint">Acompanhe quantas unidades saíram por dia.</p>
+          </div>
+          <div class="sales-header-actions">
+            <button type="button" class="ghost" id="export-sales-csv" title="Exportar histórico filtrado em CSV">
+              Exportar CSV
+            </button>
+            <button type="button" class="ghost" id="clear-sales-form" title="Limpar campos de venda">
+              Limpar formulário
+            </button>
+          </div>
+        </div>
+
+        <form id="sales-form" class="sales-form">
+          <div class="sales-form-grid">
+            <label class="sales-field">
+              <span>Data</span>
+              <input type="date" id="sales-date" required />
+            </label>
+            <label class="sales-field sales-product-field">
+              <span>Produto / receita</span>
+              <div class="sales-product-wrapper">
+                <select id="sales-recipe">
+                  <option value="">Selecione uma receita</option>
+                  <option value="custom">Outro produto</option>
+                </select>
+                <input type="text" id="sales-product" placeholder="Nome do produto" />
+              </div>
+            </label>
+            <label class="sales-field">
+              <span>Quantidade vendida</span>
+              <input type="number" id="sales-quantity" min="0" step="1" placeholder="Ex.: 18" required />
+            </label>
+            <label class="sales-field sales-notes-field">
+              <span>Observações</span>
+              <textarea id="sales-notes" rows="2" placeholder="Ex.: Feira local, promoção..."></textarea>
+            </label>
+          </div>
+          <div class="sales-actions">
+            <button type="submit" class="primary">Registrar venda</button>
+            <p class="sales-status" id="sales-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
+
+        <section class="sales-filters" aria-labelledby="sales-filters-title">
+          <div class="sales-filters-header">
+            <h3 id="sales-filters-title">Filtrar por período</h3>
+            <button type="button" class="ghost" id="clear-sales-filter" title="Limpar filtros">Limpar filtro</button>
+          </div>
+          <div class="sales-filters-grid">
+            <label class="sales-field">
+              <span>Data inicial</span>
+              <input type="date" id="sales-filter-start" />
+            </label>
+            <label class="sales-field">
+              <span>Data final</span>
+              <input type="date" id="sales-filter-end" />
+            </label>
+            <div class="sales-totals" aria-live="polite">
+              <span>Total vendido no período</span>
+              <strong id="sales-period-total">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <div class="sales-summary">
+          <h3>Resumo diário</h3>
+          <ul id="sales-summary-list" class="sales-summary-list">
+            <li class="sales-summary-empty">Nenhum registro ainda.</li>
+          </ul>
+        </div>
+
+        <div class="table-scroll">
+          <table class="compact">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Produto</th>
+                <th>Quantidade</th>
+                <th>Observações</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sales-log-body">
+              <tr class="sales-empty">
+                <td colspan="5">Nenhum registro de venda salvo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   </main>
